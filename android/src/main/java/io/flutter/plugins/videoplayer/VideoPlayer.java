@@ -8,7 +8,6 @@ import static androidx.media3.common.Player.REPEAT_MODE_ALL;
 import static androidx.media3.common.Player.REPEAT_MODE_OFF;
 
 import android.content.Context;
-import android.view.Surface;
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
 import androidx.media3.common.AudioAttributes;
@@ -18,10 +17,9 @@ import androidx.media3.common.PlaybackParameters;
 import androidx.media3.exoplayer.ExoPlayer;
 import io.flutter.view.TextureRegistry;
 
-final class VideoPlayer {
+final class VideoPlayer implements TextureRegistry.SurfaceProducer.Callback {
   private ExoPlayer exoPlayer;
-  private Surface surface;
-  private final TextureRegistry.SurfaceTextureEntry textureEntry;
+  private final TextureRegistry.SurfaceProducer textureEntry;
   private final VideoPlayerCallbacks videoPlayerEvents;
   private final VideoPlayerOptions options;
 
@@ -39,7 +37,7 @@ final class VideoPlayer {
   static VideoPlayer create(
       Context context,
       VideoPlayerCallbacks events,
-      TextureRegistry.SurfaceTextureEntry textureEntry,
+      TextureRegistry.SurfaceProducer textureEntry,
       VideoAsset asset,
       VideoPlayerOptions options) {
     ExoPlayer.Builder builder =
@@ -51,12 +49,13 @@ final class VideoPlayer {
   VideoPlayer(
       ExoPlayer.Builder builder,
       VideoPlayerCallbacks events,
-      TextureRegistry.SurfaceTextureEntry textureEntry,
+      TextureRegistry.SurfaceProducer textureEntry,
       MediaItem mediaItem,
       VideoPlayerOptions options) {
     this.videoPlayerEvents = events;
     this.textureEntry = textureEntry;
     this.options = options;
+    this.textureEntry.setCallback(this);
 
     ExoPlayer exoPlayer = builder.build();
     exoPlayer.setMediaItem(mediaItem);
@@ -68,8 +67,7 @@ final class VideoPlayer {
   private void setUpVideoPlayer(ExoPlayer exoPlayer) {
     this.exoPlayer = exoPlayer;
 
-    surface = new Surface(textureEntry.surfaceTexture());
-    exoPlayer.setVideoSurface(surface);
+    exoPlayer.setVideoSurface(textureEntry.getSurface());
     setAudioAttributes(exoPlayer, options.mixWithOthers);
     exoPlayer.addListener(new ExoPlayerEventListener(exoPlayer, videoPlayerEvents));
   }
@@ -119,11 +117,18 @@ final class VideoPlayer {
 
   void dispose() {
     textureEntry.release();
-    if (surface != null) {
-      surface.release();
-    }
     if (exoPlayer != null) {
       exoPlayer.release();
     }
+  }
+
+  @Override
+  public void onSurfaceCreated() {
+    exoPlayer.setVideoSurface(textureEntry.getSurface());
+  }
+
+  @Override
+  public void onSurfaceDestroyed() {
+    exoPlayer.clearVideoSurface();
   }
 }

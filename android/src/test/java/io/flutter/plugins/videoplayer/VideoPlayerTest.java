@@ -8,7 +8,8 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import android.graphics.SurfaceTexture;
+import android.view.Surface;
+
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
 import androidx.media3.common.PlaybackParameters;
@@ -44,7 +45,7 @@ public final class VideoPlayerTest {
   private FakeVideoAsset fakeVideoAsset;
 
   @Mock private VideoPlayerCallbacks mockEvents;
-  @Mock private TextureRegistry.SurfaceTextureEntry mockTexture;
+  @Mock private TextureRegistry.SurfaceProducer mockTexture;
   @Mock private ExoPlayer.Builder mockBuilder;
   @Mock private ExoPlayer mockExoPlayer;
   @Captor private ArgumentCaptor<AudioAttributes> attributesCaptor;
@@ -55,7 +56,7 @@ public final class VideoPlayerTest {
   public void setUp() {
     fakeVideoAsset = new FakeVideoAsset(FAKE_ASSET_URL);
     when(mockBuilder.build()).thenReturn(mockExoPlayer);
-    when(mockTexture.surfaceTexture()).thenReturn(mock(SurfaceTexture.class));
+    when(mockTexture.getSurface()).thenReturn(mock(Surface.class));
   }
 
   private VideoPlayer createVideoPlayer() {
@@ -73,7 +74,7 @@ public final class VideoPlayerTest {
 
     verify(mockExoPlayer).setMediaItem(fakeVideoAsset.getMediaItem());
     verify(mockExoPlayer).prepare();
-    verify(mockTexture).surfaceTexture();
+    verify(mockTexture).getSurface();
     verify(mockExoPlayer).setVideoSurface(any());
 
     verify(mockExoPlayer).setAudioAttributes(attributesCaptor.capture(), eq(true));
